@@ -1,0 +1,69 @@
+COVERGROUP COVERAGE:
+------------------------------------------------------------------------------------------------------
+Covergroup                                             Metric      Goal/ Status                      
+                                                                At Least                             
+------------------------------------------------------------------------------------------------------
+ TYPE /i2c_master_pkg/i2c_master_coverage_collector/COVER_STATES 
+                                                       100.0%        100 Covered                   
+      Coverpoint COVER_STATES::#coverpoint__0#           100.0%        100 Covered                   
+   CLASS i2c_master_coverage_collector
+ Covergroup instance \/i2c_master_pkg::i2c_master_coverage_collector::COVER_STATES  
+                                                       100.0%        100 Covered                   
+      Coverpoint #coverpoint__0#                         100.0%        100 Covered                   
+          covered/total bins:                                14         14                           
+          missing/total bins:                                 0         14                           
+          bin IDLE_to_IDLE                                    4          1 Covered                   
+          bin IDLE_to_START                                  80          1 Covered                   
+          bin START_to_ADDR                                  80          1 Covered                   
+          bin ADDR_to_ADDR_REG                              640          1 Covered                   
+          bin ADDR_REG_to_ADDR                              560          1 Covered                   
+          bin ADDR_REG_to_WACK                               80          1 Covered                   
+          bin WACK_to_SACK                                  160          1 Covered                   
+          bin SACK_to_WRITE_DATA                            160          1 Covered                   
+          bin WRITE_DATA_to_WRITE_DATA_REG                  640          1 Covered                   
+          bin WRITE_DATA_to_WSTOP_2                          80          1 Covered                   
+          bin WRITE_DATA_REG_to_WRITE_DATA                  560          1 Covered                   
+          bin WRITE_DATA_REG_to_WACK                         80          1 Covered                   
+          bin WSTOP_2_to_STOP                                80          1 Covered                   
+          bin STOP_to_IDLE                                   78          1 Covered                   
+   TYPE /i2c_master_pkg/i2c_master_coverage_collector/COVER_ADDRESS 
+                                                       100.0%        100 Covered                   
+      Coverpoint COVER_ADDRESS::#coverpoint__0#          100.0%        100 Covered                   
+   CLASS i2c_master_coverage_collector
+ Covergroup instance \/i2c_master_pkg::i2c_master_coverage_collector::COVER_ADDRESS  
+                                                       100.0%        100 Covered                   
+      Coverpoint #coverpoint__0#                         100.0%        100 Covered                   
+          covered/total bins:                                 4          4                           
+          missing/total bins:                                 0          4                           
+          bin addr_lo_1                                      25          1 Covered                   
+          bin addr_lo_2                                      15          1 Covered                   
+          bin addr_hi_1                                      16          1 Covered                   
+          bin addr_hi_2                                      24          1 Covered                   
+          default bin misc_addr                               0            ZERO                      
+   TYPE /i2c_master_pkg/i2c_master_coverage_collector/COVER_DATA 
+                                                       100.0%        100 Covered                   
+      Coverpoint COVER_DATA::#coverpoint__0#             100.0%        100 Covered                   
+   CLASS i2c_master_coverage_collector
+ Covergroup instance \/i2c_master_pkg::i2c_master_coverage_collector::COVER_DATA  
+                                                       100.0%        100 Covered                   
+      Coverpoint #coverpoint__0#                         100.0%        100 Covered                   
+          covered/total bins:                                 4          4                           
+          missing/total bins:                                 0          4                           
+          bin data_lo_1                                      21          1 Covered                   
+          bin data_lo_2                                      19          1 Covered                   
+          bin data_hi_1                                      21          1 Covered                   
+          bin data_hi_2                                      19          1 Covered                   
+          default bin misc_data                               0            ZERO                      
+   TYPE /i2c_master_pkg/i2c_master_coverage_collector/COVER_STOP 
+                                                       100.0%        100 Covered                   
+      Coverpoint COVER_STOP::#coverpoint__0#             100.0%        100 Covered                   
+   CLASS i2c_master_coverage_collector
+ Covergroup instance \/i2c_master_pkg::i2c_master_coverage_collector::COVER_STOP  
+                                                       100.0%        100 Covered                   
+      Coverpoint #coverpoint__0#                         100.0%        100 Covered                   
+          covered/total bins:                                 1          1                           
+          missing/total bins:                                 0          1                           
+          bin stop_hi                                        80          1 Covered                   
+          default bin misc_stop                               0            ZERO                      
+  
+TOTAL COVERGROUP COVERAGE: 100.0%  COVERGROUP TYPES: 4

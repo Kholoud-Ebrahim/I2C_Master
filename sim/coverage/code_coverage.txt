@@ -1,0 +1,474 @@
+Coverage Report by file with details
+
+File: E:/UVM/I2C/i2c_master/rtl/i2c_master.sv
+    Enabled Coverage        Active      Hits    Misses % Covered
+    ----------------        ------      ----    ------ ---------
+    Stmts                       63        41        22      65.0
+    Branches                    35        23        12      65.7
+    FEC Condition Terms          6         2         4      33.3
+    FEC Expression Terms         0         0         0     100.0
+    States                      15        10         5      66.6
+    Transitions                 35        14        21      40.0
+    Toggle Bins                101        72        29      71.2
+
+Statement Coverage:
+    Enabled Coverage        Active      Hits    Misses % Covered
+    ----------------        ------      ----    ------ ---------
+    Stmts                       63        41        22      65.0
+
+================================Statement Details================================
+
+Statement Coverage for file E:/UVM/I2C/i2c_master/rtl/i2c_master.sv --
+
+    1                                              /*###################################################################*\
+    2                                              ##              Module Name: i2c_master                              ##
+    3                                              ##              Project Name: i2c_master                             ##
+    4                                              ##              Date:   7/12/2023                                    ##
+    5                                              ##              Author: Kholoud Ebrahim Darwseh                      ##
+    6                                              \*###################################################################*/
+    7                                              
+    8                                              module i2c_master(clk, rst, start, address, rd_wr, din, stop, dout, SDA, SCL);
+    9                                                  input clk, rst, start;
+    10                                                 input [6:0] address;
+    11                                                 input rd_wr;
+    12                                                 input [7:0] din;
+    13                                                 input stop;
+    14                                                 output reg [7:0] dout;
+    15                                                 inout SDA;
+    16                                                 output SCL;
+    17                                             
+    18                                                 parameter READ =0, WRITE =1;
+    19                                                 enum bit[3:0]{IDLE, START, ADDR , ADDR_REG, WACK, SACK , WRITE_DATA, WRITE_DATA_REG, WSTOP_1, READ_DATA, READ_DATA_1, READ_DATA_2, READ_DATA_REG, WSTOP_2, STOP} state;
+    20                                                 bit mode;
+    21                                                 logic ack;
+    22                                                 logic [7:0] tx_reg;
+    23                                                 logic [2:0] count;
+    24                                                 logic sda, scl;
+    25                                                 
+    26            1                       3286         always @(posedge clk , posedge rst) begin
+    27                                                     if (rst) begin
+    28            1                          4                 count = 0;
+    29            1                          4                 state = IDLE;
+    30            1                          4                 scl = 1;
+    31            1                          4                 sda = 1;
+    32                                                     end
+    33                                                     else begin
+    34                                                         case (state) 
+    35                                                             IDLE : begin
+    36                                                                 if (start == 1'b1) 
+    37            1                         80                             state = START ;
+    38                                                                 else 
+    39            1                          2                             state = IDLE;
+    40            1                         82                         scl = 1;
+    41            1                         82                         sda = 1;
+    42                                                             end
+    43                                             
+    44                                                             START : begin
+    45            1                         80                         state = ADDR;
+    46            1                         80                         sda = 0;
+    47            1                         80                         count = 0;
+    48            1                         80                         mode = rd_wr; // read or write status must be maintained by user at rd_wr pin
+    49            1                         80                         tx_reg = {address,rd_wr};
+    50                                                             end
+    51                                                     
+    52                                                             ADDR : begin
+    53            1                        640                         scl = 0; // falling edge by master
+    54            1                        640                         state = ADDR_REG;
+    55            1                        640                         sda = tx_reg[~count] ;
+    56                                                             end
+    57                                                   
+    58                                                             ADDR_REG : begin
+    59            1                        640                         scl = 1;// rising edge by master 
+    60            1                        640                         count = count +1;
+    61                                                                 if (count == 0) 
+    62            1                         80                             state = WACK;
+    63                                                                 else 
+    64            1                        560                             state = ADDR;
+    65                                                             end
+    66                                                     
+    67                                                             WACK : begin
+    68            1                        160                         state = SACK;
+    69            1                        160                         scl = 0; // negedge scl  
+    70                                                             end
+    71                                                           
+    72                                                             SACK : begin
+    73            1                        160                         scl = 1; //rising edge
+    74                                                                 
+    75                                                                 if(ack == 0) 
+    76            1                    ***0***                             state = IDLE;
+    77                                                                 else begin
+    78                                                                     if(ack == 1 && mode == READ) begin
+    79            1                    ***0***                                 state = WSTOP_1;
+    80            1                    ***0***                                 tx_reg = 0;
+    81                                                                     end
+    82                                                                     if(ack == 1 && mode == WRITE) begin
+    83            1                        160                                 state = WRITE_DATA;
+    84            1                        160                                 tx_reg = din;
+    85                                                                     end
+    86                                                                 end
+    87                                                             end
+    88                                                 
+    89                                                             WRITE_DATA : begin
+    90            1                        720                         scl = 0; // negedge scl
+    91                                                                 if(count == 0 && stop == 1) begin //for stop detection
+    92            1                         80                             state = WSTOP_2;
+    93            1                         80                             sda = 0;
+    94                                                                 end
+    95                                                                 else begin
+    96            1                        640                             state = WRITE_DATA_REG;
+    97            1                        640                             sda = tx_reg[~count];
+    98                                                                 end
+    99                                                             end
+    100                                              
+    101                                                            WRITE_DATA_REG : begin
+    102           1                        640                         scl = 1; //posedge scl
+    103           1                        640                         count = count +1;
+    104                                                                if(count == 0)
+    105           1                         80                             state = WACK;
+    106                                                                else 
+    107           1                        560                             state = WRITE_DATA;
+    108                                                            end
+    109                                              
+    110                                                            WSTOP_1 : begin
+    111           1                    ***0***                         scl = 0; // negedge scl
+    112           1                    ***0***                         sda=1;	
+    113                                                                if(stop == 1)begin
+    114           1                    ***0***                             state = WSTOP_2;
+    115           1                    ***0***                             sda = 0;
+    116                                                                end
+    117                                                                else 
+    118           1                    ***0***                             state = READ_DATA;   
+    119                                                            end
+    120                                                
+    121                                                            READ_DATA : begin
+    122           1                    ***0***                         scl = 1; // posedge scl
+    123           1                    ***0***                         tx_reg[~count] = SDA;
+    124                                                                if(count == 7) 
+    125           1                    ***0***                             state =READ_DATA_2;
+    126                                                                else 
+    127           1                    ***0***                             state = READ_DATA_1;
+    128                                                            end
+    129                                              
+    130                                                            READ_DATA_1 : begin
+    131           1                    ***0***                         scl = 0 ; // negedge scl
+    132           1                    ***0***                         count = count +1;
+    133           1                    ***0***                         state = READ_DATA;         
+    134                                                            end
+    135                                            
+    136                                                            READ_DATA_2 : begin
+    137           1                    ***0***                         scl = 0 ; // negedge scl
+    138           1                    ***0***                         sda = 0;
+    139           1                    ***0***                         count = 0;
+    140           1                    ***0***                         state = READ_DATA_REG;
+    141                                                            end
+    142                                            
+    143                                                            READ_DATA_REG : begin
+    144           1                    ***0***                         scl = 1; // posedge scl
+    145           1                    ***0***                         dout = tx_reg;
+    146           1                    ***0***                         state = WSTOP_1;
+    147                                                            end
+    148                                              
+    149                                                            WSTOP_2 : begin
+    150           1                         80                         scl = 1; // posedge scl
+    151           1                         80                         state = STOP;
+    152                                                            end
+    153                                              
+    154                                                            STOP : begin
+    155           1                         80                         sda = 1;
+    156           1                         80                         state = IDLE;
+    157                                                            end
+    158                                                        endcase
+    159                                                    end
+    160                                                end
+    161                                            
+    162           1                        854         assign SDA = (sda == 0 ) ? 1'b0 : 1'b1 ;
+    163           1                       3044         assign SCL = (scl == 0 ) ? 1'b0 : 1'b1 ;
+    164                                            endmodule :i2c_master
+
+Branch Coverage:
+    Enabled Coverage        Active      Hits    Misses % Covered
+    ----------------        ------      ----    ------ ---------
+    Branches                    35        23        12      65.7
+
+================================Branch Details================================
+
+Branch Coverage for file E:/UVM/I2C/i2c_master/rtl/i2c_master.sv --
+
+------------------------------------IF Branch------------------------------------
+    27                                    3286     Count coming in to IF
+    27            1                          4             if (rst) begin
+    33            1                       3282             else begin
+Branch totals: 2 hits of 2 branches = 100.0%
+
+------------------------------------CASE Branch------------------------------------
+    34                                    3282     Count coming in to CASE
+    35            1                         82                     IDLE : begin
+    44            1                         80                     START : begin
+    52            1                        640                     ADDR : begin
+    58            1                        640                     ADDR_REG : begin
+    67            1                        160                     WACK : begin
+    72            1                        160                     SACK : begin
+    89            1                        720                     WRITE_DATA : begin
+    101           1                        640                     WRITE_DATA_REG : begin
+    110           1                    ***0***                     WSTOP_1 : begin
+    121           1                    ***0***                     READ_DATA : begin
+    130           1                    ***0***                     READ_DATA_1 : begin
+    136           1                    ***0***                     READ_DATA_2 : begin
+    143           1                    ***0***                     READ_DATA_REG : begin
+    149           1                         80                     WSTOP_2 : begin
+    154           1                         80                     STOP : begin
+Branch totals: 10 hits of 15 branches = 66.6%
+
+------------------------------------IF Branch------------------------------------
+    36                                      82     Count coming in to IF
+    36            1                         80                         if (start == 1'b1) 
+    38            1                          2                         else 
+Branch totals: 2 hits of 2 branches = 100.0%
+
+------------------------------------IF Branch------------------------------------
+    61                                     640     Count coming in to IF
+    61            1                         80                         if (count == 0) 
+    63            1                        560                         else 
+Branch totals: 2 hits of 2 branches = 100.0%
+
+------------------------------------IF Branch------------------------------------
+    75                                     160     Count coming in to IF
+    75            1                    ***0***                         if(ack == 0) 
+    77            1                        160                         else begin
+Branch totals: 1 hit of 2 branches = 50.0%
+
+------------------------------------IF Branch------------------------------------
+    78                                     160     Count coming in to IF
+    78            1                    ***0***                             if(ack == 1 && mode == READ) begin
+                                           160     All False Count
+Branch totals: 1 hit of 2 branches = 50.0%
+
+------------------------------------IF Branch------------------------------------
+    82                                     160     Count coming in to IF
+    82            1                        160                             if(ack == 1 && mode == WRITE) begin
+                                       ***0***     All False Count
+Branch totals: 1 hit of 2 branches = 50.0%
+
+------------------------------------IF Branch------------------------------------
+    91                                     720     Count coming in to IF
+    91            1                         80                         if(count == 0 && stop == 1) begin //for stop detection
+    95            1                        640                         else begin
+Branch totals: 2 hits of 2 branches = 100.0%
+
+------------------------------------IF Branch------------------------------------
+    104                                    640     Count coming in to IF
+    104           1                         80                         if(count == 0)
+    106           1                        560                         else 
+Branch totals: 2 hits of 2 branches = 100.0%
+
+------------------------------------IF Branch------------------------------------
+    113                                ***0***     Count coming in to IF
+    113           1                    ***0***                         if(stop == 1)begin
+    117           1                    ***0***                         else 
+Branch totals: 0 hits of 2 branches = 0.0%
+
+------------------------------------IF Branch------------------------------------
+    124                                ***0***     Count coming in to IF
+    124           1                    ***0***                         if(count == 7) 
+    126           1                    ***0***                         else 
+Branch totals: 0 hits of 2 branches = 0.0%
+
+
+Condition Coverage:
+    Enabled Coverage        Active   Covered    Misses % Covered
+    ----------------        ------      ----    ------ ---------
+    FEC Condition Terms          6         2         4      33.3
+
+================================Condition Details================================
+
+Condition Coverage for file E:/UVM/I2C/i2c_master/rtl/i2c_master.sv --
+
+----------------Focused Condition View-------------------
+Line       78 Item    1                         if(ack == 1 && mode == READ) begin
+Condition totals: 0 of 2 input terms covered = 0.0%
+
+   Input Term   Covered  Reason for no coverage   Hint
+  -----------  --------  -----------------------  --------------
+   (ack == 1)         N  No hits                  Hit '_0' and '_1'
+  (mode == 0)         N  '_1' not hit             Hit '_1'
+
+     Rows:       Hits  FEC Target            Matching input patterns       
+ ---------  ---------  --------------------  -------------------------     
+  Row   1:    ***0***  (ack == 1)_0          { 0- }                        
+  Row   2:    ***0***  (ack == 1)_1          { 11 }                        
+  Row   3:        160  (mode == 0)_0         { 10 }                        
+  Row   4:    ***0***  (mode == 0)_1         { 11 }                        
+
+NOTE:
+  * Order of matching input pattern values: {(ack == 1),(mode == 0)}
+
+----------------Focused Condition View-------------------
+Line       82 Item    1                         if(ack == 1 && mode == WRITE) begin
+Condition totals: 0 of 2 input terms covered = 0.0%
+
+   Input Term   Covered  Reason for no coverage   Hint
+  -----------  --------  -----------------------  --------------
+   (ack == 1)         N  '_0' not hit             Hit '_0'
+  (mode == 1)         N  '_0' not hit             Hit '_0'
+
+     Rows:       Hits  FEC Target            Matching input patterns       
+ ---------  ---------  --------------------  -------------------------     
+  Row   1:    ***0***  (ack == 1)_0          { 0- }                        
+  Row   2:        160  (ack == 1)_1          { 11 }                        
+  Row   3:    ***0***  (mode == 1)_0         { 10 }                        
+  Row   4:        160  (mode == 1)_1         { 11 }                        
+
+NOTE:
+  * Order of matching input pattern values: {(ack == 1),(mode == 1)}
+
+----------------Focused Condition View-------------------
+Line       91 Item    1                     if(count == 0 && stop == 1) begin //for stop detection
+Condition totals: 2 of 2 input terms covered = 100.0%
+
+
+Expression Coverage:
+    Enabled Coverage        Active   Covered    Misses % Covered
+    ----------------        ------      ----    ------ ---------
+    FEC Expression Terms         0         0         0     100.0
+FSM Coverage:
+    Enabled Coverage        Active      Hits    Misses % Covered
+    ----------------        ------      ----    ------ ---------
+    States                      15        10         5      66.6
+    Transitions                 35        14        21      40.0
+
+================================FSM Details================================
+
+FSM Coverage for file E:/UVM/I2C/i2c_master/rtl/i2c_master.sv --
+
+FSM_ID: state
+    Current State Object : state
+    ----------------------
+    State Value MapInfo :
+    ---------------------
+Line          State Name               Value
+----          ----------               -----
+  35                IDLE                   0
+  44               START                   1
+  52                ADDR                   2
+  58            ADDR_REG                   3
+  67                WACK                   4
+  72                SACK                   5
+  89          WRITE_DATA                   6
+ 110             WSTOP_1                   8
+ 101      WRITE_DATA_REG                   7
+ 149             WSTOP_2                  13
+ 121           READ_DATA                   9
+ 130         READ_DATA_1                  10
+ 136         READ_DATA_2                  11
+ 143       READ_DATA_REG                  12
+ 154                STOP                  14
+    Covered States :
+    ----------------
+                   State           Hit_count
+                   -----           ---------
+                    IDLE                  86
+                   START                  80
+                    ADDR                 640
+                ADDR_REG                 640
+                    WACK                 160
+                    SACK                 160
+              WRITE_DATA                 720
+          WRITE_DATA_REG                 640
+                 WSTOP_2                  80
+                    STOP                  80
+    Covered Transitions :
+    ---------------------
+Line            Trans_ID           Hit_count          Transition          
+----            --------           ---------          ----------          
+  39                   0                   4          IDLE -> IDLE        
+  37                   1                  80          IDLE -> START       
+  45                   2                  80          START -> ADDR       
+  54                   4                 640          ADDR -> ADDR_REG    
+  64                   6                 560          ADDR_REG -> ADDR    
+  62                   7                  80          ADDR_REG -> WACK    
+  68                   9                 160          WACK -> SACK        
+  83                  11                 160          SACK -> WRITE_DATA  
+  96                  14                 640          WRITE_DATA -> WRITE_DATA_REG
+  92                  15                  80          WRITE_DATA -> WSTOP_2
+ 107                  20                 560          WRITE_DATA_REG -> WRITE_DATA
+ 105                  21                  80          WRITE_DATA_REG -> WACK
+ 151                  23                  80          WSTOP_2 -> STOP     
+ 156                  34                  80          STOP -> IDLE        
+    Uncovered States :
+    ------------------
+                   State
+                   -----
+                 WSTOP_1
+               READ_DATA
+             READ_DATA_1
+             READ_DATA_2
+           READ_DATA_REG
+    Uncovered Transitions :
+    -----------------------
+Line            Trans_ID          Transition          
+----            --------          ----------          
+  29                   3          START -> IDLE       
+  29                   5          ADDR -> IDLE        
+  29                   8          ADDR_REG -> IDLE    
+  29                  10          WACK -> IDLE        
+  79                  12          SACK -> WSTOP_1     
+  76                  13          SACK -> IDLE        
+  29                  16          WRITE_DATA -> IDLE  
+ 118                  17          WSTOP_1 -> READ_DATA
+ 114                  18          WSTOP_1 -> WSTOP_2  
+  29                  19          WSTOP_1 -> IDLE     
+  29                  22          WRITE_DATA_REG -> IDLE
+  29                  24          WSTOP_2 -> IDLE     
+ 127                  25          READ_DATA -> READ_DATA_1
+ 125                  26          READ_DATA -> READ_DATA_2
+  29                  27          READ_DATA -> IDLE   
+ 133                  28          READ_DATA_1 -> READ_DATA
+  29                  29          READ_DATA_1 -> IDLE 
+ 140                  30          READ_DATA_2 -> READ_DATA_REG
+  29                  31          READ_DATA_2 -> IDLE 
+ 146                  32          READ_DATA_REG -> WSTOP_1
+  29                  33          READ_DATA_REG -> IDLE
+
+
+    Summary                 Active      Hits    Misses % Covered
+    -------                 ------      ----    ------ ---------
+    States                      15        10         5      66.6
+    Transitions                 35        14        21      40.0
+Toggle Coverage:
+    Enabled Coverage        Active      Hits    Misses % Covered
+    ----------------        ------      ----    ------ ---------
+    Toggle Bins                101        72        29      71.2
+
+================================Toggle Details================================
+
+Toggle Coverage for File E:/UVM/I2C/i2c_master/rtl/i2c_master.sv --
+
+       Line                                   Node      1H->0L      0L->1H                          "Coverage"
+--------------------------------------------------------------------------------------------------------------
+          9                                  start           0           2                               50.00 
+          9                                    rst           2           0                               50.00 
+         10                             address[6]           0           1                               50.00 
+         11                                  rd_wr           0           2                               50.00 
+         12                                 din[7]           0           1                               50.00 
+         14                                dout[7]           0           0                                0.00 
+         14                                dout[6]           0           0                                0.00 
+         14                                dout[5]           0           0                                0.00 
+         14                                dout[4]           0           0                                0.00 
+         14                                dout[3]           0           0                                0.00 
+         14                                dout[2]           0           0                                0.00 
+         14                                dout[1]           0           0                                0.00 
+         14                                dout[0]           0           0                                0.00 
+         19                                  state               ENUM type       Value       Count 
+                                                                   WSTOP_1           0        0.00 
+                                                                 READ_DATA           0        0.00 
+                                                               READ_DATA_1           0        0.00 
+                                                               READ_DATA_2           0        0.00 
+                                                             READ_DATA_REG           0        0.00 
+         20                                   mode           0           2                               50.00 
+         21                                    ack           0           0                                0.00 
+
+Total Node Count     =         58 
+Toggled Node Count   =         38 
+Untoggled Node Count =         20 
+
+Toggle Coverage      =       71.2% (72 of 101 bins)
